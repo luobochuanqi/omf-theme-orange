@@ -11,8 +11,6 @@ set -q color_cpu_str; or set -g color_cpu_str FFFFFF
 set -q color_mem_bg; or set -g color_mem_bg 8E44AD
 set -q color_mem_str; or set -g color_mem_str FFFFFF
 
-set -g left_segment_separator \uE0B2
-
 # ===========================
 # 系统资源监控函数
 # ===========================
@@ -97,13 +95,19 @@ function fish_right_prompt -d "Orange 主题右侧提示符"
     set -l cpu_usage (__orange_get_cpu_usage)
     set -l mem_usage (__orange_get_memory_usage)
     
+    # 定义图标（使用 printf 正确解析 Unicode）
+    set -l icon_mem (printf '\uf0e4')    # 内存图标
+    set -l icon_cpu (printf '\uf1e3')    # CPU 图标
+    set -l icon_time (printf '\uf017')   # 时钟图标
+    set -l separator (printf '\ue0b2')   # 左侧分隔符
+    
     # 内存段
     if test "$mem_usage" != "N/A"
         set_color $color_mem_bg
-        echo -n "$left_segment_separator"
+        echo -n "$separator"
         set_color -b $color_mem_bg
         set_color $color_mem_str
-        echo -n " \uF0E4 $mem_usage% "
+        echo -n " $icon_mem $mem_usage% "
         set_color normal
     end
     
@@ -111,9 +115,9 @@ function fish_right_prompt -d "Orange 主题右侧提示符"
     if test "$cpu_usage" != "N/A"
         set_color -b $color_cpu_bg
         set_color $color_mem_bg
-        echo -n "$left_segment_separator"
+        echo -n "$separator"
         set_color $color_cpu_str
-        echo -n " \uF1E3 $cpu_usage% "
+        echo -n " $icon_cpu $cpu_usage% "
     end
     
     # 时间戳段
@@ -123,9 +127,9 @@ function fish_right_prompt -d "Orange 主题右侧提示符"
     else
         set_color normal
     end
-    echo -n "$left_segment_separator"
+    echo -n "$separator"
     set_color $color_time_str
-    echo -n " "(date "+%H:%M:%S")" "
+    echo -n " $icon_time "(date "+%H:%M:%S")" "
     set_color normal
     
     # 结束空格

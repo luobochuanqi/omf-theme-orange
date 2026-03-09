@@ -175,7 +175,7 @@ function fish_greeting -d "显示炫酷的 Orange 主题启动界面"
     
     # 第6行
     set_color $ubuntu_yellow
-    echo -n "  +sssssssssshmydMMMMMMMNddddyssssssss+     "
+    echo -n "  +sssssssssshmydMMMMMMMNddddyssssssss+    "
     set_color $white
     echo -n "Shell: "
     set_color $white
@@ -245,7 +245,7 @@ function fish_greeting -d "显示炫酷的 Orange 主题启动界面"
     
     # 第15行
     set_color $ubuntu_yellow
-    echo -n "  +ssssssssssdmydMMMMMNddddyssssssss+     "
+    echo -n "  +ssssssssssdmydMMMMMNddddyssssssss+    "
     set_color $orange
     echo -n "  🍊 "
     set_color $white
