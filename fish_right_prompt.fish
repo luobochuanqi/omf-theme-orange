@@ -95,11 +95,11 @@ function fish_right_prompt -d "Orange 主题右侧提示符"
     set -l cpu_usage (__orange_get_cpu_usage)
     set -l mem_usage (__orange_get_memory_usage)
     
-    # 定义图标（使用 printf 正确解析 Unicode）
-    set -l icon_mem (printf '\uf0e4')    # 内存图标
-    set -l icon_cpu (printf '\uf1e3')    # CPU 图标
-    set -l icon_time (printf '\uf017')   # 时钟图标
-    set -l separator (printf '\ue0b2')   # 左侧分隔符
+    # 使用纯文字标签
+    set -l label_mem "MEM"     # 内存标签
+    set -l label_cpu "CPU"     # CPU 标签
+    set -l label_time "TIME"   # 时间标签
+    set -l separator "◀"       # 分隔符
     
     # 内存段
     if test "$mem_usage" != "N/A"
@@ -107,7 +107,7 @@ function fish_right_prompt -d "Orange 主题右侧提示符"
         echo -n "$separator"
         set_color -b $color_mem_bg
         set_color $color_mem_str
-        echo -n " $icon_mem $mem_usage% "
+        echo -n " $label_mem $mem_usage% "
         set_color normal
     end
     
@@ -117,7 +117,7 @@ function fish_right_prompt -d "Orange 主题右侧提示符"
         set_color $color_mem_bg
         echo -n "$separator"
         set_color $color_cpu_str
-        echo -n " $icon_cpu $cpu_usage% "
+        echo -n " $label_cpu $cpu_usage% "
     end
     
     # 时间戳段
@@ -129,7 +129,7 @@ function fish_right_prompt -d "Orange 主题右侧提示符"
     end
     echo -n "$separator"
     set_color $color_time_str
-    echo -n " $icon_time "(date "+%H:%M:%S")" "
+    echo -n " $label_time "(date "+%H:%M:%S")" "
     set_color normal
     
     # 结束空格
