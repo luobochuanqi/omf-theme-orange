@@ -17,32 +17,9 @@ set -q color_git_dirty_str; or set -g color_git_dirty_str FFFFFF
 set -q color_status_success; or set -g color_status_success 2ECC71
 set -q color_status_error; or set -g color_status_error E74C3C
 
-# Powerline 分隔符
-set -g segment_separator \uE0B0
-set -g segment_separator_thin \uE0B1
-set -g prompt_symbol \uE0B8
-
 # ===========================
 # 辅助函数
 # ===========================
-
-function __orange_prompt_segment -d "绘制一个提示符段"
-    set -l bg $argv[1]
-    set -l fg $argv[2]
-    set -l content $argv[3]
-    
-    set_color -b $bg
-    set_color $fg
-    echo -n " $content "
-end
-
-function __orange_prompt_end -d "结束提示符段"
-    set -l bg $argv[1]
-    set_color -b normal
-    set_color $bg
-    echo -n "$segment_separator"
-    set_color normal
-end
 
 function __orange_git_branch -d "获取当前 Git 分支"
     command git symbolic-ref --short HEAD 2>/dev/null
@@ -75,62 +52,80 @@ end
 function fish_prompt -d "Orange 主题主提示符"
     set -l last_status $status
     
-    # 第一行：信息行
-    echo -n "
-"
+    # 保存光标位置，用于右侧提示符对齐
+    set -l pwd_str (__orange_get_pwd)
+    set -l git_info ""
     
-    # 起始分隔符（根据上一条命令状态变色）
-    if test $last_status -eq 0
-        set_color $color_status_success
-    else
-        set_color $color_status_error
-    end
-    echo -n " $segment_separator "
-    set_color normal
-    
-    # 目录段
-    set -l pwd (__orange_get_pwd)
-    __orange_prompt_segment $color_path_bg $color_path_str $pwd
-    __orange_prompt_end $color_path_bg
-    
-    # Git 状态段（如果在 git 仓库中）
+    # 检查 Git 状态
     if command git rev-parse --git-dir >/dev/null 2>&1
         set -l git_branch (__orange_git_branch)
         set -l git_status (__orange_git_status)
         
         if test "$git_status" = "clean"
-            set_color -b $color_git_clean_bg
-            set_color $color_path_bg
-            echo -n "$segment_separator"
-            __orange_prompt_segment $color_git_clean_bg $color_git_clean_str "\uE0A0 $git_branch"
-            __orange_prompt_end $color_git_clean_bg
+            set git_info "  $git_branch"
         else
-            set_color -b $color_git_dirty_bg
-            set_color $color_path_bg
-            echo -n "$segment_separator"
-            __orange_prompt_segment $color_git_dirty_bg $color_git_dirty_str "\uE0A0 $git_branch"
-            __orange_prompt_end $color_git_dirty_bg
+            set git_info "  $git_branch ±"
         end
     end
     
-    echo -n " "
+    # 第一行：信息行
+    echo ""
     
-    # 第二行：输入提示行（圆滑曲线指向）
-    echo -n "
-"
-    
-    # 左侧的圆滑曲线
-    set_color $color_orange_bg
-    echo -n " $prompt_symbol "
+    # 目录段（带背景色）
+    set_color -b $color_path_bg
+    set_color $color_path_str
+    echo -n " $pwd_str "
     set_color normal
     
-    # 输入指示器
+    # Git 状态段（如果有）
+    if test -n "$git_info"
+        if string match -q "*±*" $git_info
+            # 未提交的更改 - 红色
+            set_color -b $color_git_dirty_bg
+            set_color $color_path_bg
+            echo -n ""
+            set_color $color_git_dirty_str
+            echo -n "$git_info "
+            set_color normal
+            set_color $color_git_dirty_bg
+        else
+            # 干净的 - 绿色
+            set_color -b $color_git_clean_bg
+            set_color $color_path_bg
+            echo -n ""
+            set_color $color_git_clean_str
+            echo -n "$git_info "
+            set_color normal
+            set_color $color_git_clean_bg
+        end
+        echo -n ""
+    else
+        # 没有 Git，直接结束目录段
+        set_color $color_path_bg
+        echo -n ""
+    end
+    
+    set_color normal
+    echo ""
+    
+    # 第二行：输入提示行
+    # 显示状态符号（根据上一条命令）
+    if test $last_status -eq 0
+        set_color $color_status_success
+        echo -n "✓ "
+    else
+        set_color $color_status_error
+        echo -n "✗ "
+    end
+    set_color normal
+    
+    # 输入指示器（橙色箭头）
     set_color -b $color_orange_bg
-    set_color $color_orange_str
+    set_color FFFFFF
     echo -n " ❯ "
     set_color normal
     set_color $color_orange_bg
-    echo -n "$segment_separator"
+    echo -n ""
     set_color normal
     echo -n " "
 end

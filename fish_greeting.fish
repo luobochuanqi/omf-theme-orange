@@ -1,5 +1,5 @@
-# Orange 主题 - 炫酷启动问候语
-# 双栏布局：左侧 Ubuntu 字符画，右侧系统信息
+# Orange 主题 - 炫酷启动问候语 (Neofetch 风格)
+# 双栏布局：左侧 Ubuntu ASCII Art，右侧系统信息
 
 function __orange_get_os_info -d "获取操作系统信息"
     if test -f /etc/os-release
@@ -16,16 +16,79 @@ function __orange_get_os_info -d "获取操作系统信息"
     end
 end
 
-function __orange_get_shell_version -d "获取 Shell 版本"
-    echo $FISH_VERSION
+function __orange_get_kernel -d "获取内核版本"
+    uname -r
 end
 
-function __orange_get_load_avg -d "获取系统负载"
-    uptime | awk -F'load average:' '{print $2}' | string trim
+function __orange_get_packages -d "获取已安装软件包数量"
+    if type -q dpkg
+        dpkg -l 2>/dev/null | wc -l | string trim
+    else if type -q pacman
+        pacman -Q 2>/dev/null | wc -l | string trim
+    else if type -q brew
+        brew list 2>/dev/null | wc -l | string trim
+    else
+        echo "N/A"
+    end
 end
 
-function __orange_get_disk_usage -d "获取磁盘使用情况"
-    df -h / 2>/dev/null | tail -1 | awk '{print $5 " (" $3 "/" $2 ")"}'
+function __orange_get_resolution -d "获取屏幕分辨率"
+    if type -q xdpyinfo
+        xdpyinfo 2>/dev/null | grep dimensions | awk '{print $2}'
+    else
+        echo "N/A"
+    end
+end
+
+function __orange_get_de -d "获取桌面环境"
+    if test -n "$XDG_CURRENT_DESKTOP"
+        echo $XDG_CURRENT_DESKTOP
+    else if test -n "$DESKTOP_SESSION"
+        echo $DESKTOP_SESSION
+    else
+        echo "N/A"
+    end
+end
+
+function __orange_get_theme -d "获取 GTK 主题"
+    if test -n "$GTK_THEME"
+        echo $GTK_THEME
+    else
+        echo "N/A"
+    end
+end
+
+function __orange_get_cpu -d "获取 CPU 信息"
+    if test -f /proc/cpuinfo
+        grep "model name" /proc/cpuinfo | head -1 | cut -d':' -f2 | string trim
+    else
+        echo "N/A"
+    end
+end
+
+function __orange_get_memory -d "获取内存信息"
+    if test -f /proc/meminfo
+        set -l mem_total (grep "MemTotal:" /proc/meminfo | awk '{print $2}')
+        set -l mem_available (grep "MemAvailable:" /proc/meminfo 2>/dev/null | awk '{print $2}')
+        if test -z "$mem_available"
+            set mem_available (grep "MemFree:" /proc/meminfo | awk '{print $2}')
+        end
+        
+        if test -n "$mem_total" -a "$mem_total" -gt 0
+            set -l used (math "$mem_total - $mem_available")
+            set -l used_mb (math "$used / 1024")
+            set -l total_mb (math "$mem_total / 1024")
+            echo "$used_mb"MiB "/" "$total_mb"MiB
+        else
+            echo "N/A"
+        end
+    else
+        echo "N/A"
+    end
+end
+
+function __orange_get_disk -d "获取磁盘使用情况"
+    df -h / 2>/dev/null | tail -1 | awk '{print $3 " / " $2 " (" $5 ")"}'
 end
 
 function __orange_get_local_ip -d "获取本地 IP"
@@ -34,231 +97,190 @@ function __orange_get_local_ip -d "获取本地 IP"
     or echo "N/A"
 end
 
-function __orange_get_quote -d "获取随机欢迎语"
-    set -l quotes \
-        "Stay hungry, stay foolish." \
-        "Talk is cheap. Show me the code." \
-        "The only way to do great work is to love what you do." \
-        "Simplicity is the ultimate sophistication." \
-        "Code is like humor. When you have to explain it, it's bad." \
-        "First, solve the problem. Then, write the code." \
-        "Make it work, make it right, make it fast." \
-        "🍊 今天也是充满希望的一天！" \
-        "🚀 准备好开始编程了吗？" \
-        "✨ 让代码改变世界！"
-    
-    set -l index (random 1 (count $quotes))
-    echo $quotes[$index]
-end
-
 function fish_greeting -d "显示炫酷的 Orange 主题启动界面"
-    # 获取系统信息
+    # 获取所有系统信息
     set -l user (whoami)
     set -l host_name (hostname -s 2>/dev/null; or hostname)
     set -l os_info (__orange_get_os_info)
-    set -l shell_ver (__orange_get_shell_version)
-    set -l date_str (date "+%Y-%m-%d %a")
-    set -l time_str (date "+%H:%M:%S")
+    set -l kernel (__orange_get_kernel)
     set -l uptime_info (uptime -p 2>/dev/null | string replace "up " "" | string replace " days" "d" | string replace " day" "d" | string replace " hours" "h" | string replace " hour" "h" | string replace " minutes" "m" | string replace " minute" "m" | string replace ", " " "; or echo "N/A")
-    set -l load_avg (__orange_get_load_avg)
-    set -l disk_usage (__orange_get_disk_usage)
+    set -l packages (__orange_get_packages)
+    set -l resolution (__orange_get_resolution)
+    set -l de (__orange_get_de)
+    set -l theme (__orange_get_theme)
+    set -l cpu (__orange_get_cpu)
+    set -l memory (__orange_get_memory)
+    set -l disk (__orange_get_disk)
     set -l local_ip (__orange_get_local_ip)
-    set -l quote (__orange_get_quote)
+    set -l shell_ver $FISH_VERSION
+    set -l date_str (date "+%Y-%m-%d")
+    set -l time_str (date "+%H:%M:%S")
     
     # 颜色定义
     set -l orange FF9F43
     set -l orange_bold FF6B35
-    set -l purple 9B59B6
+    set -l ubuntu_red E95420
+    set -l ubuntu_orange E95420
+    set -l ubuntu_yellow F4AA00
     set -l blue 3498DB
     set -l green 2ECC71
     set -l cyan 1ABC9C
     set -l yellow F1C40F
-    set -l red E74C3C
     set -l gray 95A5A6
-    set -l dark 2C3E50
     set -l white FFFFFF
-    
-    # 清屏（可选，让界面更整洁）
-    # clear
     
     echo ""
     
     # ═══════════════════════════════════════════════════════════
-    # 双栏布局：左侧字符画，右侧信息
+    # 经典 Ubuntu ASCII Art + 系统信息 (Neofetch 风格)
     # ═══════════════════════════════════════════════════════════
     
-    # 第 1 行：顶部装饰线
-    set_color $orange
-    echo -n "  ╭───────────────────────────────╮  "
-    set_color $orange
-    echo "╭──────────────────────────────────────────╮"
-    set_color normal
-    
-    # 第 2 行：Ubuntu 字符画顶部 + 系统标题
-    set_color $orange
-    echo -n "  │  ⢀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣤⣄        │  "
-    set_color $orange_bold
-    echo -n "│  🍊 "
+    # 第1行
+    set_color $ubuntu_red
+    echo -n "            .-/+oossssoo+/-.               "
     set_color $white
-    set_color -b $orange
-    echo -n "  O R A N G E   T H E M E  "
-    set_color normal
-    set_color $orange
-    echo "  │"
-    set_color normal
+    echo "$user"@"$host_name"
     
-    # 第 3 行：字符画 + 分隔线
-    set_color $orange
-    echo -n "  │  ⢰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧       │  "
-    set_color $orange
-    echo "├──────────────────────────────────────────┤"
-    set_color normal
-    
-    # 第 4 行：字符画 + 用户信息
-    set_color $orange
-    echo -n "  │  ⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿       │  "
-    set_color $orange
-    echo -n "│  👤 "
+    # 第2行
+    set_color $ubuntu_red
+    echo -n "        `:+ssssssssssssssssss+:`           "
     set_color $white
-    echo -n "User: "
-    set_color $cyan
-    printf "%-34s" "$user@$host_name"
-    set_color $orange
-    echo "│"
-    set_color normal
-    
-    # 第 5 行：字符画 + 日期时间
-    set_color $orange
-    echo -n "  │  ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇      │  "
-    set_color $orange
-    echo -n "│  📅 "
+    echo -n "OS: "
     set_color $white
-    echo -n "Date: "
-    set_color $yellow
-    printf "%-34s" "$date_str"
-    set_color $orange
-    echo "│"
-    set_color normal
+    echo $os_info
     
-    # 第 6 行：字符画 + 时间
-    set_color $orange
-    echo -n "  │  ⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃      │  "
-    set_color $orange
-    echo -n "│  🕐 "
+    # 第3行
+    set_color $ubuntu_red
+    echo -n "      -+ssssssssssssssssssyyssss+-         "
     set_color $white
-    echo -n "Time: "
+    echo -n "Kernel: "
+    set_color $white
+    echo $kernel
+    
+    # 第4行
+    set_color $ubuntu_yellow
+    echo -n "    .ossssssssssssssssssdMMMNysssso.       "
+    set_color $white
+    echo -n "Uptime: "
     set_color $green
-    printf "%-34s" "$time_str"
-    set_color $orange
-    echo "│"
-    set_color normal
+    echo $uptime_info
     
-    # 第 7 行：字符画 + 操作系统
-    set_color $orange
-    echo -n "  │  ⠸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠏       │  "
-    set_color $orange
-    echo -n "│  🐧 "
+    # 第5行
+    set_color $ubuntu_yellow
+    echo -n "   /ssssssssssshdmmNNmmyNMMMMhssssss/      "
     set_color $white
-    echo -n "OS:   "
-    set_color $blue
-    printf "%-34s" "$os_info"
-    set_color $orange
-    echo "│"
-    set_color normal
-    
-    # 第 8 行：字符画 + Shell 版本
-    set_color $orange
-    echo -n "  │   ⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠟        │  "
-    set_color $orange
-    echo -n "│  🐟 "
+    echo -n "Packages: "
     set_color $white
-    echo -n "Fish: "
-    set_color $purple
-    printf "%-34s" "v$shell_ver"
-    set_color $orange
-    echo "│"
-    set_color normal
+    echo $packages
     
-    # 第 9 行：字符画 + 分隔线
-    set_color $orange
-    echo -n "  │    ⠙⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠋         │  "
-    set_color $orange
-    echo "├──────────────────────────────────────────┤"
-    set_color normal
-    
-    # 第 10 行：字符画 + 系统负载
-    set_color $orange
-    echo -n "  │      ⠈⠛⠿⣿⣿⣿⣿⣿⠿⠛⠁           │  "
-    set_color $orange
-    echo -n "│  ⚡ "
+    # 第6行
+    set_color $ubuntu_yellow
+    echo -n "  +sssssssssshmydMMMMMMMNddddyssssssss+     "
     set_color $white
-    echo -n "Load: "
-    set_color (test (echo $load_avg | cut -d',' -f1 | string trim | cut -d'.' -f1) -lt 2 2>/dev/null; and echo $green; or echo $red)
-    printf "%-34s" "$load_avg"
-    set_color $orange
-    echo "│"
-    set_color normal
-    
-    # 第 11 行：字符画 + 运行时长
-    set_color $orange
-    echo -n "  │         ⣀⣀⣀⣀⣀⣀⣀             │  "
-    set_color $orange
-    echo -n "│  ⏱️  "
+    echo -n "Shell: "
     set_color $white
-    echo -n "Up:   "
+    echo "fish $shell_ver"
+    
+    # 第7行
+    set_color $ubuntu_yellow
+    echo -n " /sssssssshNMMMyhhyyyyhmNMMMNhssssssss/    "
+    set_color $white
+    echo -n "Resolution: "
+    set_color $white
+    echo $resolution
+    
+    # 第8行
+    set_color $ubuntu_red
+    echo -n ".ssssssssdMMMNhsssssssssshNMMMdssssssss.   "
+    set_color $white
+    echo -n "DE: "
+    set_color $white
+    echo $de
+    
+    # 第9行
+    set_color $ubuntu_red
+    echo -n "+sssshhhyNMMNyssssssssssssyNMMMysssssss+   "
+    set_color $white
+    echo -n "Theme: "
+    set_color $white
+    echo $theme
+    
+    # 第10行
+    set_color $ubuntu_red
+    echo -n "ossyNMMMNyMMhssssssssssssshmyhsssssssoss   "
+    set_color $white
+    echo -n "CPU: "
+    set_color $white
+    echo $cpu
+    
+    # 第11行
+    set_color $ubuntu_red
+    echo -n "ossyNMMMNyMMhssssssssssssshmyhsssssssoss   "
+    set_color $white
+    echo -n "Memory: "
     set_color $cyan
-    printf "%-34s" "$uptime_info"
-    set_color $orange
-    echo "│"
-    set_color normal
+    echo $memory
     
-    # 第 12 行：字符画 + 磁盘使用
-    set_color $orange
-    echo -n "  │         ⠛⠛⠛⠛⠛⠛⠛⠛             │  "
-    set_color $orange
-    echo -n "│  💾 "
+    # 第12行
+    set_color $ubuntu_yellow
+    echo -n "+sssshhhyNMMNyssssssssssssyNMMMysssssss+   "
     set_color $white
     echo -n "Disk: "
     set_color $yellow
-    printf "%-34s" "$disk_usage"
-    set_color $orange
-    echo "│"
-    set_color normal
+    echo $disk
     
-    # 第 13 行：字符画 + IP 地址
-    set_color $orange
-    echo -n "  │                            │  "
-    set_color $orange
-    echo -n "│  🌐 "
+    # 第13行
+    set_color $ubuntu_yellow
+    echo -n ".ssssssssdMMMNhsssssssssshNMMMdssssssss.   "
     set_color $white
-    echo -n "IP:   "
+    echo -n "IP: "
     set_color $green
-    printf "%-34s" "$local_ip"
-    set_color $orange
-    echo "│"
-    set_color normal
+    echo $local_ip
     
-    # 第 14 行：底部装饰
-    set_color $orange
-    echo -n "  ╰───────────────────────────────╯  "
-    set_color $orange
-    echo "╰──────────────────────────────────────────╯"
-    set_color normal
-    
-    # 名言区域
-    echo ""
+    # 第14行
+    set_color $ubuntu_yellow
+    echo -n " /sssssssshNMMMyhhyyyyhdNMMMNhssssssss/    "
     set_color $gray
-    echo -n "  💭 "
+    echo "═══════════════════════════════════════"
+    
+    # 第15行
+    set_color $ubuntu_yellow
+    echo -n "  +ssssssssssdmydMMMMMNddddyssssssss+     "
+    set_color $orange
+    echo -n "  🍊 "
     set_color $white
-    echo "$quote"
-    set_color normal
+    echo "Orange Theme Ready!"
     
-    # 底部提示
-    echo ""
-    set_color $orange
-    echo -n "  ➜ "
+    # 第16行
+    set_color $ubuntu_red
+    echo -n "   /ssssssssssshdmNNNNmyNMMMMhssssss/      "
     set_color $gray
-    echo " Welcome back, $user! Ready to make something awesome?"
+    echo "Date: $date_str | Time: $time_str"
+    
+    # 第17行
+    set_color $ubuntu_red
+    echo -n "    .ossssssssssssssssssdMMMNysssso.       "
+    set_color normal
+    echo ""
+    
+    # 第18行
+    set_color $ubuntu_red
+    echo -n "      -+sssssssssssssssssyyyssss+-         "
+    set_color normal
+    echo ""
+    
+    # 第19行
+    set_color $ubuntu_red
+    echo -n "        `:+ssssssssssssssssss+:`           "
+    set_color normal
+    echo ""
+    
+    # 第20行
+    set_color $ubuntu_red
+    echo -n "            .-/+oossssoo+/-.               "
+    set_color $orange
+    echo "  ➜ Welcome back, $user!"
+    
     set_color normal
     echo ""
 end

@@ -80,12 +80,12 @@ function __orange_format_bytes -d "将 KB 转换为人类可读格式"
     
     if test $kb -gt 1048576
         set -l gb (math -s2 "$kb / 1048576")
-        echo "${gb}G"
+        echo "$gb"G
     else if test $kb -gt 1024
         set -l mb (math -s1 "$kb / 1024")
-        echo "${mb}M"
+        echo "$mb"M
     else
-        echo "${kb}K"
+        echo "$kb"K
     end
 end
 
