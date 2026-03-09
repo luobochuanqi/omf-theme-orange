@@ -100,7 +100,7 @@ function fish_right_prompt -d "Orange 主题右侧提示符"
     set -l label_cpu "CPU"     # CPU 标签
     set -l label_time "TIME"   # 时间标签
     # set -l separator "◀"       # 分隔符
-    set -l separator "❮"       # 分隔符
+    set -l separator "|"       # 分隔符
     
     # 内存段
     if test "$mem_usage" != "N/A"
